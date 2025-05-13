@@ -1,0 +1,35 @@
+
+
+services:
+  ai:
+    image: zoltansvelecz/ai-model:latest  # Replace with your Docker Hub image
+    ports:
+      - "5555:5555"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    networks:
+      - app-network
+
+  server:
+    image: zoltansvelecz/ai-server:latest # Replace with your Docker Hub image
+    ports:
+      - "5130:5130"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    depends_on:
+      - ai
+    networks:
+      - app-network
+
+  client:
+    image: zoltansvelecz/ai-client:latest # Replace with your Docker Hub image
+    ports:
+      - "5173:80"
+    depends_on:
+      - server
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

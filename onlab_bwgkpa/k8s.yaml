@@ -1,0 +1,149 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: bwgkpa
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai
+  namespace: bwgkpa
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ai
+  template:
+    metadata:
+      labels:
+        app: ai
+    spec:
+      containers:
+        - name: ai
+          image: zoltansvelecz/ai-model:latest
+          ports:
+            - containerPort: 5555
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: Development
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai
+  namespace: bwgkpa
+spec:
+  selector:
+    app: ai
+  ports:
+    - protocol: TCP
+      port: 5555
+      targetPort: 5555
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: server
+  namespace: bwgkpa
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: server
+  template:
+    metadata:
+      labels:
+        app: server
+    spec:
+      containers:
+        - name: server
+          image: zoltansvelecz/ai-server:latest
+          ports:
+            - containerPort: 5130
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: Development
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: server
+  namespace: bwgkpa
+spec:
+  selector:
+    app: server
+  ports:
+    - protocol: TCP
+      port: 5130
+      targetPort: 5130
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: client
+  namespace: bwgkpa
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: client
+  template:
+    metadata:
+      labels:
+        app: client
+    spec:
+      containers:
+        - name: client
+          image: zoltansvelecz/ai-client:latest
+          ports:
+            - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: client
+  namespace: bwgkpa
+spec:
+  selector:
+    app: client
+  ports:
+    - protocol: TCP
+      port: 5173
+      targetPort: 80
+      nodePort: 30517  # Choose a port between 30000–32767
+  type: NodePort
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: local-pv
+  namespace: bwgkpa
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: local-storage
+  local:
+    path: /mnt/data  # This must be mounted on the node
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - w-1  # Replace with actual node name
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ai-pvc
+  namespace: bwgkpa
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
